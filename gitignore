@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Local model weights and datasets (do not commit large/private data)
+*.h5
+*.keras
+*.pt
+*.pth
+*.onnx
+data/
+datasets/
+
+# Runtime data and uploads
+prototypes/flask-tensorflow-demo/uploads/*
+!prototypes/flask-tensorflow-demo/uploads/.gitkeep
+prototypes/flask-tensorflow-demo/prediction_history.json
+*.log
+
+# Local secrets
+.env
+.env.*
+!.env.example
