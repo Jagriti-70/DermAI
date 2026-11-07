@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SkinScan AI — Early Skin Disease Detection</title>
+<!-- React (via CDN, so no npm/build step needed) -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  *  { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+  body{
+    min-height:100vh;
+    background: linear-gradient(135deg,#667eea 0%, #764ba2 100%);
+    color:#222;
+    padding:24px;
+  }
+  .container{ max-width:1100px; margin:0 auto; }
+  header{
+    text-align:center; color:#fff; margin-bottom:24px;
+  }
+  header h1{ font-size:2.4rem; letter-spacing:1px; }
+  header p { opacity:.9; margin-top:4px; }
+
+  .card{
+    background:#fff; border-radius:18px; padding:28px;
+    box-shadow:0 18px 50px rgba(0,0,0,.18); margin-bottom:20px;
+  }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  @media(max-width:780px){ .grid{ grid-template-columns:1fr; } }
+
+  .drop-zone{
+    border:3px dashed #b6b6ff; border-radius:14px;
+    padding:36px; text-align:center; cursor:pointer;
+    transition:.2s; background:#f8f9ff;
+  }
+  .drop-zone:hover{ border-color:#667eea; background:#eef1ff; }
+  .drop-zone.active{ border-color:#27ae60; background:#eafaf0; }
+  .drop-zone svg{ width:64px; height:64px; opacity:.6; }
+  .drop-zone p{ margin-top:10px; color:#555; }
+
+  button.primary{
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    color:#fff; border:none; padding:12px 28px;
+    border-radius:30px; font-size:1rem; font-weight:600;
+    cursor:pointer; transition:.2s; margin-top:12px;
+  }
+  button.primary:hover{ transform:translateY(-2px); box-shadow:0 8px 20px rgba(102,126,234,.4); }
+  button.primary:disabled{ opacity:.5; cursor:not-allowed; transform:none; }
+
+  .preview img{ max-width:100%; max-height:280px; border-radius:12px; display:block; margin:0 auto; }
+
+  .result-title{ font-size:1.6rem; color:#667eea; margin-bottom:8px; }
+  .badge{ display:inline-block; padding:4px 12px; border-radius:20px; font-size:.85rem; font-weight:600; color:#fff; }
+  .sev-Low      { background:#27ae60; }
+  .sev-Moderate { background:#f39c12; }
+  .sev-High     { background:#e74c3c; }
+
+  .bar{ background:#eef; border-radius:10px; height:14px; overflow:hidden; margin-top:6px; }
+  .bar > div{ height:100%; background:linear-gradient(90deg,#667eea,#764ba2); transition:.5s; }
+
+  table{ width:100%; border-collapse:collapse; margin-top:8px; }
+  th, td { padding:8px; text-align:left; border-bottom:1px solid #eee; font-size:.92rem; }
+  th{ background:#f5f7ff; color:#444; }
+
+  .footer{ text-align:center; color:rgba(255,255,255,.85); padding:18px; font-size:.85rem; }
+  .spinner{
+    width:42px; height:42px; border:4px solid #eee;
+    border-top-color:#667eea; border-radius:50%;
+    animation:spin 1s linear infinite; margin:0 auto;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .disclaimer{
+    background:#fff8e1; border-left:4px solid #ffb300;
+    padding:12px 16px; border-radius:6px; margin-top:16px;
+    font-size:.88rem; color:#7a5a00;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+function App() {
+  const [file, setFile]         = useState(null);
+  const [preview, setPreview]   = useState(null);
+  const [loading, setLoading]   = useState(false);
+  const [result, setResult]     = useState(null);
+  const [history, setHistory]   = useState([]);
+  const [health, setHealth]     = useState(null);
+  const [dragOver, setDragOver] = useState(false);
+  const inputRef = useRef();
+
+  useEffect(() => {
+    fetch("/api/health").then(r => r.json()).then(setHealth).catch(() => {});
+    loadHistory();
+  }, []);
+
+  function loadHistory() {
+    fetch("/api/history").then(r => r.json()).then(d => setHistory(d.history || []));
+  }
+
+  function handleFile(f) {
+    if (!f) return;
+    setFile(f);
+    setResult(null);
+    const reader = new FileReader();
+    reader.onload = e => setPreview(e.target.result);
+    reader.readAsDataURL(f);
+  }
+
+  function onDrop(e) {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  }
+
+  async function predict() {
+    if (!file) return;
+    setLoading(true);
+    setResult(null);
+    const fd = new FormData();
+    fd.append("image", file);
+    try {
+      const r = await fetch("/api/predict", { method: "POST", body: fd });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Prediction failed");
+      setResult(data);
+      loadHistory();
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="container">
+      <header>
+        <h1>🩺 SkinScan AI</h1>
+        <p>Deep Learning Model for Early Detection of Skin Diseases</p>
+        {health && (
+          <p style={{ marginTop: 6, fontSize: ".85rem" }}>
+            Status: <b>{health.status}</b> · Model backend: <b>{health.backend}</b> · {health.classes} classes
+          </p>
+        )}
+      </header>
+
+      <div className="card">
+        <div className="grid">
+          <div>
+            <h2 style={{ marginBottom: 12, color: "#444" }}>1. Upload a skin image</h2>
+            <div
+              className={"drop-zone " + (dragOver ? "active" : "")}
+              onClick={() => inputRef.current.click()}
+              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={onDrop}
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14a6 6 0 006 6h13a5 5 0 005-5c0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+              </svg>
+              <p><b>Click or drag</b> an image here</p>
+              <p style={{ fontSize: ".85rem", color: "#888" }}>PNG, JPG, JPEG, WEBP (max 10 MB)</p>
+              <input
+                ref={inputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={e => handleFile(e.target.files[0])}
+              />
+            </div>
+
+            {preview && (
+              <div className="preview" style={{ marginTop: 16 }}>
+                <img src={preview} alt="preview" />
+                <div style={{ textAlign: "center" }}>
+                  <button className="primary" disabled={loading} onClick={predict}>
+                    {loading ? "Analyzing…" : "🔍 Analyze Image"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h2 style={{ marginBottom: 12, color: "#444" }}>2. Diagnosis result</h2>
+
+            {!result && !loading && (
+              <div style={{ textAlign: "center", color: "#aaa", padding: "60px 20px" }}>
+                <p>Upload an image to see prediction results here.</p>
+              </div>
+            )}
+            {loading && (
+              <div style={{ textAlign: "center", padding: "60px 20px" }}>
+                <div className="spinner"></div>
+                <p style={{ marginTop: 14, color: "#666" }}>Running deep learning inference…</p>
+              </div>
+            )}
+
+            {result && (
+              <div>
+                <div className="result-title">{result.prediction}</div>
+                <span className={"badge sev-" + result.severity}>
+                  Severity: {result.severity}
+                </span>
+                <p style={{ marginTop: 12, fontSize: "1rem" }}>
+                  <b>Confidence:</b> {result.confidence}%
+                </p>
+                <div className="bar"><div style={{ width: result.confidence + "%" }}></div></div>
+
+                <p style={{ marginTop: 14 }}>
+                  <b>💡 Advice:</b> {result.advice}
+                </p>
+
+                <h3 style={{ marginTop: 18, color: "#555" }}>Top 3 predictions</h3>
+                <table>
+                  <thead><tr><th>Class</th><th style={{ textAlign: "right" }}>Confidence</th></tr></thead>
+                  <tbody>
+                    {result.top3.map((t, i) => (
+                      <tr key={i}>
+                        <td>{t.name}</td>
+                        <td style={{ textAlign: "right" }}>{t.confidence}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <div className="disclaimer">
+                  ⚠️ This tool is for educational/research purposes only. Always consult a qualified
+                  dermatologist for medical advice.
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {history.length > 0 && (
+        <div className="card">
+          <h2 style={{ color: "#444", marginBottom: 12 }}>📊 Recent predictions</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th><th>Prediction</th><th>Severity</th>
+                <th style={{ textAlign: "right" }}>Confidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map((h, i) => (
+                <tr key={i}>
+                  <td>{h.timestamp}</td>
+                  <td>{h.prediction}</td>
+                  <td><span className={"badge sev-" + h.severity}>{h.severity}</span></td>
+                  <td style={{ textAlign: "right" }}>{h.confidence}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="footer">
+        Built with Flask + React + TensorFlow · Team: Shreyas, Ashhar, Ayan, Jagriti
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
