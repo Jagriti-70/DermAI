@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DermAI — Skin Disease Early Detection</title>
+  <link rel="stylesheet" href="src/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+  <!-- Background -->
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 36 36" fill="none">
+            <circle cx="18" cy="18" r="16" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="18" cy="18" r="8" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/>
+            <circle cx="18" cy="18" r="3" fill="currentColor"/>
+            <line x1="18" y1="2" x2="18" y2="8" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="18" y1="28" x2="18" y2="34" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="2" y1="18" x2="8" y2="18" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="28" y1="18" x2="34" y2="18" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-name">DermAI</div>
+          <div class="brand-sub">Early Detection System</div>
+        </div>
+      </div>
+      <nav class="header-nav">
+        <span class="nav-tag">HAM10000 · ISIC Dataset</span>
+        <span class="nav-tag">CNN · EfficientNet</span>
+        <span class="nav-tag">Grad-CAM</span>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-label">JNTUH · Real Time Research Project · 2024–25</div>
+      <h1>Deep Learning for<br/><em>Skin Disease</em><br/>Early Detection</h1>
+      <p class="hero-desc">Upload a dermatoscopic or clinical skin image. Our AI — powered by fine-tuned EfficientNet/ResNet architecture trained on HAM10000 — will classify potential skin conditions and highlight diagnostic regions.</p>
+      <div class="hero-warning">
+        <svg viewBox="0 0 20 20" fill="none" width="16" height="16"><path d="M10 2L2 17h16L10 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><line x1="10" y1="9" x2="10" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="15.5" r="0.75" fill="currentColor"/></svg>
+        For educational &amp; research purposes only. Not a substitute for professional medical diagnosis.
+      </div>
+    </section>
+
+    <!-- Upload + Results -->
+    <section class="workspace">
+
+      <!-- Upload Panel -->
+      <div class="panel upload-panel">
+        <div class="panel-header">
+          <span class="panel-num">01</span>
+          <span class="panel-title">Upload Skin Image</span>
+        </div>
+
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="fileInput" accept="image/*" hidden/>
+          <div class="drop-content" id="dropContent">
+            <div class="drop-rings">
+              <div class="ring r1"></div>
+              <div class="ring r2"></div>
+              <div class="ring r3"></div>
+              <div class="drop-center-icon">
+                <svg viewBox="0 0 32 32" fill="none">
+                  <path d="M16 4v16M10 14l6-6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M6 22v2a2 2 0 002 2h16a2 2 0 002-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </div>
+            </div>
+            <p class="drop-main">Drop dermatoscopic image here</p>
+            <p class="drop-hint">JPG, PNG, WEBP supported</p>
+            <label class="btn-browse" for="fileInput">Select Image</label>
+          </div>
+          <div class="preview-content" id="previewContent" style="display:none">
+            <img id="previewImg" src="" alt="Skin image preview"/>
+            <div class="preview-overlay">
+              <label for="fileInput" class="btn-change">Change Image</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="disease-chips">
+          <div class="chips-label">Detectable conditions:</div>
+          <div class="chips-list">
+            <span class="chip">Melanoma</span>
+            <span class="chip">Melanocytic Nevus</span>
+            <span class="chip">Basal Cell Carcinoma</span>
+            <span class="chip">Actinic Keratosis</span>
+            <span class="chip">Benign Keratosis</span>
+            <span class="chip">Dermatofibroma</span>
+            <span class="chip">Vascular Lesion</span>
+            <span class="chip">Psoriasis</span>
+            <span class="chip">Eczema</span>
+            <span class="chip">Fungal Infection</span>
+          </div>
+        </div>
+
+        <button class="btn-analyze" id="analyzeBtn" disabled>
+          <span>Analyze Image</span>
+          <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <!-- Results Panel -->
+      <div class="panel results-panel" id="resultsPanel">
+        <div class="panel-header">
+          <span class="panel-num">02</span>
+          <span class="panel-title">Diagnostic Report</span>
+        </div>
+
+        <!-- Idle -->
+        <div class="results-idle" id="resultsIdle">
+          <div class="idle-graphic">
+            <div class="idle-ring"></div>
+            <svg viewBox="0 0 48 48" fill="none" width="32" height="32">
+              <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
+              <path d="M16 24h16M24 16v16" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+            </svg>
+          </div>
+          <p>Upload an image and click <strong>Analyze Image</strong> to receive a detailed diagnostic report.</p>
+        </div>
+
+        <!-- Loading -->
+        <div class="results-loading" id="resultsLoading" style="display:none">
+          <div class="scan-animation">
+            <div class="scan-img-placeholder" id="scanImgWrap">
+              <img id="scanImg" src="" alt=""/>
+              <div class="scan-line"></div>
+              <div class="scan-overlay"></div>
+            </div>
+          </div>
+          <p class="loading-label">Analyzing dermatoscopic features<span class="ellipsis"></span></p>
+          <div class="loading-steps">
+            <div class="lstep active" id="step1">Preprocessing image</div>
+            <div class="lstep" id="step2">Extracting CNN features</div>
+            <div class="lstep" id="step3">Running classification</div>
+            <div class="lstep" id="step4">Generating report</div>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div class="results-output" id="resultsOutput" style="display:none">
+
+          <div class="diagnosis-header">
+            <div class="diagnosis-badge" id="diagnosisBadge">
+              <span class="badge-label">Primary Diagnosis</span>
+              <span class="badge-value" id="primaryDiagnosis">—</span>
+            </div>
+            <div class="risk-indicator" id="riskIndicator">
+              <span class="risk-label">Risk Level</span>
+              <span class="risk-value" id="riskValue">—</span>
+            </div>
+          </div>
+
+          <div class="confidence-section">
+            <div class="conf-header">
+              <span>Confidence Score</span>
+              <span class="conf-pct" id="confPct">—</span>
+            </div>
+            <div class="conf-bar">
+              <div class="conf-fill" id="confFill"></div>
+            </div>
+          </div>
+
+          <div class="differentials-section">
+            <div class="section-label">Differential Diagnoses</div>
+            <div class="differentials-list" id="differentialsList"></div>
+          </div>
+
+          <div class="findings-section">
+            <div class="section-label">Clinical Findings</div>
+            <div class="findings-text" id="findingsText"></div>
+          </div>
+
+          <div class="recommendation-section" id="recommendationSection">
+            <div class="rec-icon">
+              <svg viewBox="0 0 20 20" fill="none" width="16"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2z" stroke="currentColor" stroke-width="1.5"/><path d="M10 6v4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+            <div class="rec-text" id="recText"></div>
+          </div>
+
+          <div class="disclaimer">
+            <strong>⚠ Research Tool Only:</strong> This analysis is generated by an AI model and must not be used for clinical diagnosis. Always consult a licensed dermatologist.
+          </div>
+
+          <button class="btn-reset" id="resetBtn">↺ New Analysis</button>
+        </div>
+
+        <!-- Error -->
+        <div class="results-error" id="resultsError" style="display:none">
+          <p id="errorMsg"></p>
+          <button class="btn-reset" id="retryBtn">Try Again</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- API Key -->
+    <section class="api-section">
+      <div class="api-box">
+        <div class="api-box-left">
+          <div class="api-title">🔑 Gemini API Key</div>
+          <p class="api-note">Uses Google Gemini 2.5 Flash vision — <strong>free tier</strong>, no credit card needed.<br/>
+          Get yours at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a></p>
+        </div>
+        <div class="api-box-right">
+          <div class="api-input-row">
+            <input type="password" id="apiKeyInput" placeholder="AIza..."/>
+            <button id="saveKeyBtn">Save</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Team -->
+    <section class="team-section">
+      <div class="team-label">Project Team · JNTUH Hyderabad</div>
+      <div class="team-grid">
+        <div class="team-member">
+          <div class="member-roll">24011A6663</div>
+          <div class="member-name">Shreyas Tammeneni</div>
+        </div>
+        <div class="team-member">
+          <div class="member-roll">24011A6649</div>
+          <div class="member-name">Mohd. Ashhar</div>
+        </div>
+        <div class="team-member">
+          <div class="member-roll">24011A6647</div>
+          <div class="member-name">Mohd. Ayan Shareef</div>
+        </div>
+        <div class="team-member">
+          <div class="member-roll">24011A6670</div>
+          <div class="member-name">Jagriti Jha</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>DermAI · Deep Learning for Early Skin Disease Detection · JNTUH · 2024–25</p>
+    <p class="footer-stack">EfficientNet · ResNet · HAM10000 · ISIC · Grad-CAM · TensorFlow · Flask · React</p>
+  </footer>
+
+  <script src="src/app.js"></script>
+</body>
+</html>
