@@ -1,0 +1,7 @@
+flask>=2.3.0
+flask-cors>=4.0.0
+Pillow>=10.0.0
+numpy>=1.24.0
+# Optional — only needed if you train/use a real .h5 model. The app
+# automatically falls back to a heuristic if TensorFlow is missing.
+# tensorflow>=2.13.0
